@@ -12,7 +12,8 @@ Depending on machine, please build the repo with
 
 ```
 virtualenv venv --python=<PATHTOPYTHON3.6>
-pip install -r requirements.txt
+source venv/bin/activate
+pip install -r requirements.txt # hopefully the packages here can fix the dependency issue
 python setup.py install
 ```
 
