@@ -7,6 +7,18 @@ output:
 Deep generative model embedding single-cell RNA-Seq profiles on hyperspheres or hyperbolic spaces
 ====================
 
+# Notes for 2255 Spatial Transcriptomics
+Depending on machine, please build the repo with
+
+```
+virtualenv venv --python=<PATHTOPYTHON3.6>
+pip install -r requirements.txt
+python setup.py install
+```
+
+
+# Notes from Original Author below
+
 ## System requirements
  scPhere has been tested on Python 3.6.7 on Linux (Red Hat Enterprise Linux Server release 7.5 (Maipo)) and macOS (Sierra Version 10.12.6, High Sierra Version 10.13.6). 
 
