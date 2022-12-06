@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 
 from matplotlib import pyplot as plt
 
@@ -10,16 +11,45 @@ from scphere.util.plot import plot_trace
 # Preparing a sparse matrix and using ~2000 variable genes for efficiency. 
 # Data can be downloaded from single cell portal (login with a Google account):
 # https://singlecell.broadinstitute.org/single_cell/study/SCP551/scphere#study-download
-data_dir = './example/data/'
-mtx = data_dir + 'cd14_monocyte_erythroid.mtx'
-x = read_mtx(mtx)
-x = x.transpose().todense()
+
+NAME = 'lung_human_ASK440'
+SPLIT = False
+
+data_dir = './example/data/' + NAME + '/'
+EPOCH = 250
+TT_RATIO = 0.75
+
+mtx = data_dir + NAME + '.mtx'
+input = read_mtx(mtx)
+input = input.transpose().todense()
+
+label_filename = data_dir + NAME + '_celltype.tsv'
+df = pd.read_csv(label_filename, sep='\n')
+label = np.array(df.values.tolist())
+
+nrow, ncol = input.shape
+
+if SPLIT:
+    train_size = round(nrow*TT_RATIO)
+    test_size = round(nrow*(1-TT_RATIO))
+
+    train_index = np.random.choice(nrow, train_size, replace=False)
+    test_index = np.array(set(np.arange(0, nrow)) - set(train_index))
+
+    train_x = input[train_index, :]
+    test_x = input[test_index, :]
+
+    train_y = label[train_index]
+    test_y = label[test_index]
+
+    input = train_x
+
 
 # The batch vector should be 0-based
 # For the cases there are no batch vectors, we can set n_batch=0,
 # and create an artificial batch vector (just for running scPhere,
 # the batch vector will not influence the results), e.g.,
-batch = np.zeros(x.shape[0]) * -1
+batch = np.zeros(nrow) * -1
 
 # build the model
 # n_gene: the number of genes
@@ -35,7 +65,7 @@ batch = np.zeros(x.shape[0]) * -1
 #                  embedding them to a latent space. The trained model can be used to map new data,
 #                  e.g., from new patients that have not been seen during training scPhere
 #                  (assuming patient is the major batch vector)
-model = SCPHERE(n_gene=x.shape[1], n_batch=0, batch_invariant=False,
+model = SCPHERE(n_gene=ncol, n_batch=0, batch_invariant=False,
                 z_dim=2, latent_dist='vmf',
                 observation_dist='nb', seed=0)
 
@@ -45,7 +75,7 @@ model = SCPHERE(n_gene=x.shape[1], n_batch=0, batch_invariant=False,
 # max_epoch: the number of epochs used to train scPhere
 # mb_size: the number of cells used in minibatch training
 # learning_rate: the learning rate of the gradient descent optimization algorithm
-trainer = Trainer(model=model, x=x, batch_id=batch, max_epoch=250,
+trainer = Trainer(model=model, x=input, batch_id=batch, max_epoch=EPOCH,
                   mb_size=128, learning_rate=0.001)
 
 trainer.train()
@@ -53,19 +83,19 @@ trainer.train()
 # save the trained model
 save_path = './example/demo-out/'
 
-model_name = save_path + 'cd14_mono_eryth_model_250epoch'
+model_name = save_path + NAME + '_model_' + str(EPOCH) + 'epoch'
 model.save_sess(model_name)
 
 # embedding all the data
-z_mean = model.encode(x, batch)
+z_mean = model.encode(input, batch)
 np.savetxt(save_path +
-           'cd14_mono_eryth_latent_250epoch.tsv',
+           NAME + '_latent_' + str(EPOCH) + 'epoch.tsv',
            z_mean)
 
 # the log-likelihoods
-ll = model.get_log_likelihood(x, batch)
+ll = model.get_log_likelihood(input, batch)
 np.savetxt(save_path +
-           'cd14_mono_eryth_ll_250epoch.tsv',
+           NAME + '_ll_' + str(EPOCH) + 'epoch.tsv',
            z_mean)
 
 # Plotting log-likelihood and kl-divergence at each iteration
@@ -75,5 +105,10 @@ plot_trace([np.arange(len(trainer.status['kl_divergence']))*50] * 2,
 # plt.show()
 
 plt.savefig(save_path +
-            'cd14_mono_eryth_train.png')
+            NAME + str(EPOCH) + '_train.png')
 
+
+
+
+### Predict Accuracy
+# model.predict
